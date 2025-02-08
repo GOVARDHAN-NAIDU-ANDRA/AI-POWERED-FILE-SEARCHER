@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Powered Smart File Searcher</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        /* Background Image */
+        body {
+            background: url('cloud2.jpg') no-repeat center center/cover;
+            text-align: center;
+            padding: 50px;
+            color: white; /* Ensures readability */
+        }
+
+        .main-heading {
+            font-size: 36px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .container {
+            max-width: 600px;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.2);
+            margin: auto;
+            color: black;
+        }
+
+        h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        input[type="file"], input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        /* Upload Button - Large */
+        button {
+            width: 100%;
+            height: 60px; /* Large Upload Button */
+            font-size: 18px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #218838;
+        }
+
+        .file-list {
+            margin-top: 20px;
+            text-align: left;
+        }
+
+        .file-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #007bff;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 5px 0;
+            width: 100%;
+        }
+
+        .file-name {
+            flex-grow: 1;
+            padding-left: 10px;
+            text-align: left;
+        }
+
+        .file-name a {
+            color: white;
+            text-decoration: none;
+        }
+
+        /* Delete Button - 1/4 the height of Upload Button */
+        .delete-btn {
+            background: red;
+            border: none;
+            width: 60px; /* Keeping width small */
+            height: 15px; /* 1/4 of 60px upload button */
+            font-size: 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            text-align: center;
+        }
+
+        .delete-btn:hover {
+            background: darkred;
+        }
+
+        .file-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <h1 class="main-heading">AI Powered Smart File Searcher For Cloud Storage</h1>
+
+    <div class="container">
+        <h2>Upload a File</h2>
+        <form action="upload.php" method="post" enctype="multipart/form-data">
+            <input type="file" name="file" required>
+            <button type="submit">Upload</button>
+        </form>
+
+        <h2>Search Files</h2>
+        <input type="text" id="searchBox" placeholder="Search files...">
+
+        <div class="file-list" id="fileList">
+            <!-- Files will be displayed here dynamically -->
+        </div>
+    </div>
+
+    <script>
+        function loadFiles() {
+            fetch('fetch_files.php')
+                .then(response => response.json())
+                .then(data => {
+                    let fileList = document.getElementById("fileList");
+                    fileList.innerHTML = ""; 
+
+                    if (data.length === 0) {
+                        fileList.innerHTML = "<p>No files uploaded yet.</p>";
+                        return;
+                    }
+
+                    data.forEach(file => {
+                        let fileRow = document.createElement("div");
+                        fileRow.classList.add("file-row");
+
+                        let fileItem = document.createElement("div");
+                        fileItem.classList.add("file-item");
+
+                        let fileName = document.createElement("div");
+                        fileName.classList.add("file-name");
+
+                        let fileLink = document.createElement("a");
+                        fileLink.href = file.filepath;
+                        fileLink.innerText = file.filename;
+                        fileLink.target = "_blank";
+
+                        let deleteButton = document.createElement("button");
+                        deleteButton.innerText = "Delete";
+                        deleteButton.classList.add("delete-btn");
+                        deleteButton.onclick = function () {
+                            deleteFile(file.filename);
+                        };
+
+                        fileName.appendChild(fileLink);
+                        fileItem.appendChild(fileName);
+                        fileRow.appendChild(fileItem);
+                        fileRow.appendChild(deleteButton);
+                        fileList.appendChild(fileRow);
+                    });
+                })
+                .catch(error => console.error("Error loading files:", error));
+        }
+
+        function deleteFile(filename) {
+            if (confirm("Are you sure you want to delete this file?")) {
+                fetch('delete_file.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'filename=' + encodeURIComponent(filename)
+                })
+                .then(response => response.text())
+                .then(data => {
+                    alert(data);
+                    loadFiles(); 
+                })
+                .catch(error => console.error("Error deleting file:", error));
+            }
+        }
+
+        document.getElementById("searchBox").addEventListener("input", function () {
+            let searchValue = this.value.toLowerCase();
+            let items = document.querySelectorAll(".file-row");
+
+            items.forEach(item => {
+                let text = item.querySelector(".file-name a").innerText.toLowerCase();
+                item.style.display = text.includes(searchValue) ? "flex" : "none";
+            });
+        });
+
+        window.onload = loadFiles;
+    </script>
+
+</body>
+</html>
